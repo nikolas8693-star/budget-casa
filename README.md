@@ -53,7 +53,9 @@ Fate lo stesso sul telefono di vostra moglie (lo stesso token va bene, oppure cr
 - **Mese**: il periodo va dal 10 al 9 del mese dopo (si cambia in Impostazioni). In alto c'è l'avanzo; sotto, entrate, uscite fisse e spese extra. Toccate una voce per modificarla.
 - **Entrate e uscite fisse**: l'importo a destra si modifica direttamente, basta toccarlo. Il nuovo valore vale per questo mese e per i successivi (i mesi passati non cambiano). Toccando il nome si apre la scheda per rinominare o eliminare la voce.
 - **Voci ricorrenti**: entrate e uscite fisse si ricopiano da sole in ogni nuovo mese.
-- **+ arancione**: aggiunge una spesa extra. Il mese si sceglie in base alla data.
+- **+ arancione**: chiede se è una **spesa fissa** o una **spesa extra**.
+  - *Spesa fissa*: scegli una voce che c'è già (es. Caselli) e scrivi l'importo: viene sommato al totale di quella voce per questo mese. Toccando il nome della voce vedi le aggiunte e puoi eliminarle.
+  - *Spesa extra*: una spesa nuova con descrizione, data e chi ha pagato. Il mese si sceglie in base alla data.
 - **Grafici**: dove vanno i soldi nel mese e l'avanzo mese per mese.
 - **Welfare**: benzina e spesa per mese, con quanto resta del tetto annuo (impostato a 1.000 €, si cambia in Impostazioni).
 - **Sincronizzazione**: ogni modifica viene salvata su GitHub dopo un secondo. Quando aprite l'app scarica le modifiche dell'altro telefono. Se modificate tutti e due insieme, le modifiche vengono unite.

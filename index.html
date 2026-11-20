@@ -79,7 +79,7 @@ input,select{font:inherit;color:var(--ink)}
 .legend-inline i{display:inline-block;width:9px;height:9px;border-radius:2px;margin:0 4px 0 10px;vertical-align:0}
 .legend-inline i:first-child{margin-left:0}
 /* fab + tabs */
-#fab{position:fixed;right:18px;bottom:calc(78px + env(safe-area-inset-bottom));width:58px;height:58px;border-radius:50%;background:var(--orange);color:#fff;font-size:32px;line-height:58px;text-align:center;box-shadow:0 6px 18px rgba(0,0,0,.22);z-index:30}
+#fab{position:fixed;right:18px;bottom:calc(78px + env(safe-area-inset-bottom));width:58px;height:58px;border-radius:50%;background:var(--orange);color:#fff;display:flex;align-items:center;justify-content:center;padding:0;box-shadow:0 6px 18px rgba(0,0,0,.22);z-index:30}
 #tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--card);border-top:1px solid var(--line);display:flex;padding-bottom:env(safe-area-inset-bottom)}
 #tabs button{flex:1;height:62px;font-size:11px;color:var(--muted);display:flex;flex-direction:column;align-items:center;justify-content:center}
 #tabs button svg{width:24px;height:24px;margin-bottom:3px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
@@ -107,6 +107,15 @@ input,select{font:inherit;color:var(--ink)}
 .btn+.btn{margin-left:10px}
 .btn.pri{background:var(--blue);color:#fff}
 .btn.del{background:transparent;color:var(--red);flex:0 0 auto;padding:0 14px}
+/* scelta tipo spesa */
+.pick{display:flex;align-items:center;width:100%;text-align:left;padding:16px;border:1px solid var(--line);border-radius:14px;margin-bottom:10px;background:var(--bg)}
+.pick i{width:14px;height:14px;border-radius:4px;margin-right:14px;flex:0 0 14px}
+.pick b{display:block;font-size:17px}
+.pick small{color:var(--muted);font-size:13px}
+.adds .ad{display:flex;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);font-size:15px}
+.adds .ad span{flex:1}
+.adds .ad b{font-variant-numeric:tabular-nums;margin-right:12px}
+.adds .ad button{color:var(--red);font-size:14px}
 /* misc */
 .pad{padding:14px}
 .muted{color:var(--muted)}
@@ -144,7 +153,7 @@ input,select{font:inherit;color:var(--ink)}
 <body>
 <header id="top"></header>
 <main id="main" class="wrap"></main>
-<button id="fab" data-act="add-extra" aria-label="Aggiungi spesa">+</button>
+<button id="fab" data-act="fab" aria-label="Aggiungi spesa"><svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true" style="display:block"><path d="M12 4.5v15M4.5 12h15" stroke="#fff" stroke-width="2.6" stroke-linecap="round" fill="none"/></svg></button>
 <nav id="tabs">
   <button data-tab="mese"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Mese</button>
   <button data-tab="grafici"><svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9h-9z"/><path d="M15 3.5A9 9 0 0 1 20.5 9H15z"/></svg>Grafici</button>
@@ -202,7 +211,7 @@ function normalize(s){
   b.settings={people:(st.people&&st.people.length?st.people:b.settings.people).slice(0,2),startDay:Math.min(28,Math.max(1,+st.startDay||1)),welfareCap:num(st.welfareCap)||1000,u:num(st.u)};
   if(b.settings.people.length<2)b.settings.people.push('Persona 2');
   var t=s.template||{};b.template={income:(t.income||[]).slice(),fixed:(t.fixed||[]).slice()};
-  var p=s.periods||{};Object.keys(p).forEach(function(k){var x=p[k]||{};b.periods[k]={income:(x.income||[]).slice(),fixed:(x.fixed||[]).slice(),extra:(x.extra||[]).slice()}});
+  var p=s.periods||{};Object.keys(p).forEach(function(k){var x=p[k]||{};b.periods[k]={income:(x.income||[]).slice(),fixed:(x.fixed||[]).slice(),extra:(x.extra||[]).slice(),adds:(x.adds||[]).slice()}});
   var w=s.welfare||{};Object.keys(w).forEach(function(k){b.welfare[k]=w[k]});
   return b;
 }
@@ -231,20 +240,24 @@ function fromTemplate(k){
   return {
     income:S.template.income.filter(alive).map(function(t){return {id:k+':'+t.id,tid:t.id,name:t.name,amount:t.amount,u:0}}),
     fixed:S.template.fixed.filter(alive).map(function(t){return {id:k+':'+t.id,tid:t.id,name:t.name,amount:t.amount,u:0}}),
-    extra:[]
+    extra:[],adds:[]
   };
 }
 function getP(k){
   if(S.periods[k])return S.periods[k];
   if(k>=minKey()){var v=fromTemplate(k);v.virtual=true;return v}
-  return {income:[],fixed:[],extra:[],empty:true};
+  return {income:[],fixed:[],extra:[],adds:[],empty:true};
 }
 function matP(k){
-  if(!S.periods[k]){var v=getP(k);S.periods[k]={income:v.income,fixed:v.fixed,extra:v.extra}}
+  if(!S.periods[k]){var v=getP(k);S.periods[k]={income:v.income,fixed:v.fixed,extra:v.extra,adds:v.adds||[]}}
   return S.periods[k];
 }
+function addsOf(p,id){return (p.adds||[]).filter(function(a){return alive(a)&&a.ref===id})}
+function addsSum(p,id){return addsOf(p,id).reduce(function(s,a){return s+num(a.amount)},0)}
+function itemTot(p,x){return num(x.amount)+addsSum(p,x.id)}
 function totals(p){
-  var inc=sum(p.income),fx=sum(p.fixed),ex=sum(p.extra);
+  var inc=sum(p.income),ex=sum(p.extra);
+  var fx=p.fixed.filter(alive).reduce(function(s,x){return s+itemTot(p,x)},0);
   return {inc:inc,fx:fx,ex:ex,out:fx+ex,av:inc-fx-ex};
 }
 
@@ -263,7 +276,7 @@ function merge(L,R){
   Object.keys(keys).forEach(function(k){
     var a=L.periods[k],b=R.periods[k];
     if(!a||!b){o.periods[k]=a||b;return}
-    o.periods[k]={income:mergeList(a.income,b.income),fixed:mergeList(a.fixed,b.fixed),extra:mergeList(a.extra,b.extra)};
+    o.periods[k]={income:mergeList(a.income,b.income),fixed:mergeList(a.fixed,b.fixed),extra:mergeList(a.extra,b.extra),adds:mergeList(a.adds,b.adds)};
   });
   var wk={};Object.keys(L.welfare).concat(Object.keys(R.welfare)).forEach(function(k){wk[k]=1});
   Object.keys(wk).forEach(function(k){var a=L.welfare[k],b=R.welfare[k];o.welfare[k]=!a?b:!b?a:(num(b.u)>num(a.u)?b:a)});
@@ -344,7 +357,7 @@ function renderTop(){
   }
   $('#top').innerHTML=h+'</div>';
   var tabs=document.querySelectorAll('#tabs button');for(var i=0;i<tabs.length;i++)tabs[i].className=tabs[i].getAttribute('data-tab')===view.tab?'on':'';
-  $('#fab').style.display=(S&&view.tab==='mese')?'block':'none';
+  $('#fab').style.display=(S&&view.tab==='mese')?'flex':'none';
 }
 
 function render(){
@@ -387,13 +400,13 @@ function meseHtml(){
   }
   // entrate
   h+='<section class="card"><div class="sec-h c-green"><h2>Entrate</h2><span class="tot" id="tot-income">'+eur(t.inc)+'</span></div>';
-  p.income.filter(alive).forEach(function(x){h+=rowHtml('income',x)});
+  p.income.filter(alive).forEach(function(x){h+=rowHtml('income',x,p)});
   h+='<button class="add" data-act="add" data-kind="income">+ Aggiungi entrata</button></section>';
   // fisse
   var fx=p.fixed.filter(alive);
   h+='<section class="card"><div class="sec-h c-red"><h2>Uscite fisse</h2><span class="tot" id="tot-fixed">'+eur(t.fx)+'</span></div>';
   if(!fx.length)h+='<div class="empty">Nessuna uscita fissa.</div>';
-  fx.forEach(function(x){h+=rowHtml('fixed',x)});
+  fx.forEach(function(x){h+=rowHtml('fixed',x,p)});
   h+='<button class="add" data-act="add" data-kind="fixed">+ Aggiungi uscita fissa</button>';
   if(fx.length)h+='<div class="foot">Gli importi cambiati qui valgono per questo mese e per i successivi.</div>';
   h+='</section>';
@@ -405,8 +418,9 @@ function meseHtml(){
   h+='<button class="add" data-act="add-extra">+ Aggiungi spesa</button></section>';
   return h;
 }
-function rowHtml(kind,x){
+function rowHtml(kind,x,p){
   var a=num(x.amount),sub='';
+  if(kind==='fixed'&&p){var ad=addsSum(p,x.id);if(ad){sub=eur(a)+' + '+eur(ad)+' aggiunti';a+=ad}}
   if(kind==='extra'){var d=x.date?parseYmd(x.date):null;sub=(d?d.getDate()+' '+MB[d.getMonth()]:'')+(x.who?' · '+esc(x.who):'')}
   var h='<div class="row" data-act="edit" data-kind="'+kind+'" data-id="'+esc(x.id)+'">';
   h+='<div class="nm"><div>'+esc(x.name||'(senza nome)')+'</div>'+(sub?'<small>'+sub+'</small>':'')+'</div>';
@@ -424,8 +438,9 @@ function arc(cx,cy,r0,r1,a0,a1){
 }
 function graficiHtml(){
   var p=getP(view.pk),t=totals(p),h='';
-  var items=p.fixed.concat(p.extra).filter(alive).filter(function(x){return num(x.amount)>0})
-    .map(function(x){return {name:x.name,v:num(x.amount)}}).sort(function(a,b){return b.v-a.v});
+  var items=p.fixed.filter(alive).map(function(x){return {name:x.name,v:itemTot(p,x)}})
+    .concat(p.extra.filter(alive).map(function(x){return {name:x.name,v:num(x.amount)}}))
+    .filter(function(x){return x.v>0}).sort(function(a,b){return b.v-a.v});
   // donut
   h+='<section class="card"><div class="sec-h c-red"><h2>Dove vanno i soldi</h2><span class="tot">'+eur(t.out)+'</span></div>';
   if(!items.length){h+='<div class="empty">Nessuna uscita in questo mese.</div></section>'}
@@ -534,6 +549,7 @@ function openSheet(ctx){
   var h='<div class="grab"></div><h3>'+esc(ctx.title)+'</h3><form id="sf" autocomplete="off">';
   ctx.fields.forEach(function(f){
     h+='<div class="f">';
+    if(f.type==='html'){h+=f.html+'</div>';return}
     if(f.type==='check'){h+='<label class="check"><input type="checkbox" name="'+f.k+'"'+(f.value?' checked':'')+'>'+esc(f.label)+'</label>'}
     else{
       h+='<label>'+esc(f.label)+'</label>';
@@ -548,7 +564,7 @@ function openSheet(ctx){
   h+='<div class="btns">'+(ctx.onDelete?'<button type="button" class="btn del" data-act="sheet-del">Elimina</button>':'')+'<button type="button" class="btn" data-act="sheet-close">Annulla</button><button type="submit" class="btn pri">'+esc(ctx.saveLabel||'Salva')+'</button></div></form>';
   var sh=$('#sheet');sh.innerHTML=h;$('#sheet-bg').style.display='block';
   sh.offsetHeight;sh.className='open';
-  $('#sf').addEventListener('submit',function(e){e.preventDefault();var v={};ctx.fields.forEach(function(f){var el=$('#sf [name="'+f.k+'"]');v[f.k]=f.type==='check'?el.checked:f.type==='amount'?parseAmt(el.value):el.value.trim()});if(ctx.onSave(v)!==false)closeSheet()});
+  $('#sf').addEventListener('submit',function(e){e.preventDefault();var v={};ctx.fields.forEach(function(f){if(f.type==='html')return;var el=$('#sf [name="'+f.k+'"]');v[f.k]=f.type==='check'?el.checked:f.type==='amount'?parseAmt(el.value):el.value.trim()});if(ctx.onSave(v)!==false)closeSheet()});
   if(ctx.focus){var el=$('#sf [name="'+ctx.focus+'"]');if(el)setTimeout(function(){el.focus()},250)}
 }
 function closeSheet(){sheetOpen=false;$('#sheet').className='';$('#sheet-bg').style.display='none';if(pendingRender)render()}
@@ -582,7 +598,11 @@ function editItem(kind,id){
   }
   var p=getP(view.pk),list=kind==='income'?p.income:kind==='fixed'?p.fixed:p.extra,x=findItem(list,id);if(!x)return;
   if(kind==='extra')return extraSheet(x);
-  var fields=[{k:'name',label:'Nome',type:'text',value:x.name},{k:'amount',label:'Importo',type:'amount',value:x.amount}];
+  var ads=kind==='fixed'?addsOf(p,x.id):[];
+  var fields=[{k:'name',label:'Nome',type:'text',value:x.name},{k:'amount',label:ads.length?'Importo base':'Importo',type:'amount',value:x.amount}];
+  if(ads.length){var ah='<label>Aggiunte di questo mese</label><div class="adds">';
+    ads.forEach(function(a){var d=a.date?parseYmd(a.date):null;ah+='<div class="ad"><span>'+(d?d.getDate()+' '+MB[d.getMonth()]:'')+(a.who?' · '+esc(a.who):'')+'</span><b>+ '+eur(a.amount)+'</b><button type="button" data-act="del-add" data-id="'+esc(a.id)+'">Elimina</button></div>'});
+    fields.push({k:'_adds',type:'html',html:ah+'</div>'})}
   if(x.tid)fields.push({k:'fwd',label:'Applica anche ai mesi successivi',type:'check',value:true,hint:'Se spunti, cambia anche la voce ricorrente per i prossimi mesi.'});
   openSheet({title:kind==='income'?'Entrata':'Uscita fissa',fields:fields,focus:'amount',
     onSave:function(v){
@@ -644,6 +664,34 @@ function extraSheet(x){
     },
     onDelete:x?function(){var P=matP(view.pk),it=findItem(P.extra,x.id);it.del=true;it.u=now();commit()}:null});
 }
+function pickSheet(){
+  sheetOpen=true;sheetCtx=null;
+  var h='<div class="grab"></div><h3>Che spesa vuoi registrare?</h3>';
+  h+='<button class="pick" data-act="pick-fixed"><i style="background:var(--red)"></i><span><b>Spesa fissa</b><small>Si somma a una voce che c’è già (es. Caselli, Benzina, Spesa)</small></span></button>';
+  h+='<button class="pick" data-act="pick-extra"><i style="background:var(--orange)"></i><span><b>Spesa extra</b><small>Una spesa nuova, fuori dalle voci fisse</small></span></button>';
+  h+='<div class="btns"><button type="button" class="btn" data-act="sheet-close">Annulla</button></div>';
+  var sh=$('#sheet');sh.innerHTML=h;$('#sheet-bg').style.display='block';sh.offsetHeight;sh.className='open';
+}
+function fixedAddSheet(){
+  var p=getP(view.pk),fx=p.fixed.filter(alive);
+  if(!fx.length)return toast('Non ci sono uscite fisse in questo mese');
+  var r=pkRange(view.pk),today=new Date(),def=today>=r.start&&today<=new Date(r.end.getTime()+86399999)?ymd(today):ymd(r.start);
+  var opts=S.settings.people.map(function(x){return {v:x,l:x}}).concat([{v:'Insieme',l:'Insieme'}]);
+  openSheet({title:'Aggiungi a una spesa fissa',focus:'amount',saveLabel:'Aggiungi',
+    fields:[{k:'amount',label:'Importo da aggiungere',type:'amount'},
+      {k:'ref',label:'Voce',type:'chips',value:'',options:fx.map(function(x){return {v:x.id,l:x.name+' · '+eur(itemTot(p,x))}})},
+      {k:'who',label:'Chi ha pagato',type:'chips',value:ME,options:opts}],
+    onSave:function(v){
+      if(!v.amount)return toast('Inserisci un importo'),false;
+      if(!v.ref)return toast('Scegli la voce'),false;
+      var P=matP(view.pk),it=findItem(P.fixed,v.ref);if(!it)return false;
+      if(!P.adds)P.adds=[];
+      var before=itemTot(P,it);
+      P.adds.push({id:uid(),ref:it.id,amount:v.amount,date:def,who:v.who,u:now()});
+      commit();
+      toast(it.name+': '+eur(before)+' + '+eur(v.amount)+' = '+eur(itemTot(P,it)));
+    }});
+}
 function syncSheet(){
   var c=SY||{owner:'',repo:'budget-dati',branch:'main',path:'budget.json',token:''};
   openSheet({title:'Collega GitHub',saveLabel:'Collega',
@@ -691,6 +739,10 @@ document.addEventListener('click',function(e){
     case 'edit':editItem(kind,id);break;
     case 'add':addItem(kind);break;
     case 'add-extra':extraSheet(null);break;
+    case 'fab':pickSheet();break;
+    case 'pick-extra':closeSheet();setTimeout(function(){extraSheet(null)},230);break;
+    case 'pick-fixed':closeSheet();setTimeout(fixedAddSheet,230);break;
+    case 'del-add':if(confirm('Eliminare questa aggiunta?')){var P2=matP(view.pk),ad=findItem(P2.adds,id);if(ad){ad.del=true;ad.u=now();var r=el.closest('.ad');if(r)r.parentNode.removeChild(r);commit()}}break;
     case 'fill-month':S.periods[view.pk]=fromTemplate(view.pk);commit();break;
     case 'sheet-close':closeSheet();break;
     case 'sheet-del':if(confirm('Eliminare questa voce?')){var c=sheetCtx;closeSheet();c.onDelete()}break;
@@ -723,8 +775,9 @@ document.addEventListener('change',function(e){
   if(t.hasAttribute('data-amt')){
     var kd=t.getAttribute('data-amt'),iid=t.getAttribute('data-id'),v=parseAmt(t.value);
     var P=matP(view.pk),it=findItem(pList(P,kd),iid);if(!it)return;
-    it.amount=v;it.u=now();
-    if(it.tid)applyTemplate(kd,it.tid,{amount:v},pkAdd(view.pk,1));
+    var ad=kd==='fixed'?addsSum(P,it.id):0,base=Math.round((v-ad)*100)/100;
+    it.amount=base;it.u=now();
+    if(it.tid)applyTemplate(kd,it.tid,{amount:base},pkAdd(view.pk,1));
     t.value=v?grp(amtIn(v)):'';
     saveLocal();scheduleSync();updateTotals();return;
   }
